@@ -2,36 +2,12 @@ FROM php:8.1-apache-buster
 
 ENV ACCEPT_EULA=Y
 
-RUN apt-get update
+RUN apt-get update && apt-get install -y apt-transport-https build-essential curl git gnupg2 iputils-ping libaio1 libcurl4-openssl-dev \
+    libfreetype6-dev libjpeg62-turbo-dev libonig-dev libpng-dev libpq-dev libxml2-dev libzip-dev nano net-tools \
+    traceroute unzip wget zip zlib1g-dev --no-install-recommends \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get install -y \
-    apt-transport-https \
-    build-essential \
-    curl \
-    git \
-    gnupg2 \
-    iputils-ping \
-    libaio1 \
-    libcurl4-openssl-dev \
-    libfreetype6-dev \
-    libjpeg62-turbo-dev \
-    libonig-dev \
-    libpng-dev \
-    libpq-dev \
-    libxml2-dev \
-    libzip-dev \
-    nano \
-    net-tools \
-    traceroute \
-    unzip \
-    wget \
-    zip \
-    zlib1g-dev
-
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update
-
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN curl -sS https://getcomposer.org/installer \
   | php -- --install-dir=/usr/local/bin --filename=composer
 
@@ -39,35 +15,17 @@ RUN curl -sS https://getcomposer.org/installer \
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/bin/install-php-extensions
 
 # Install required PHP extensions and all their prerequisites available via apt.
-RUN chmod uga+x /usr/bin/install-php-extensions \
-    && sync \
-    && install-php-extensions \
-    bcmath \
-    curl \
-    exif \
-    gd \
-    imagick \
-    intl \
-    ldap \
-    mbstring \
-    mysqli \
-    opcache \
-    openssl \
-    pcntl \
-    pdo \
-    pdo_odbc \
-    pdo_mysql \
-    redis \
-    soap \
-    zip
+RUN chmod uga+x /usr/bin/install-php-extensions && sync && install-php-extensions bcmath curl exif gd imagick intl \
+    ldap mbstring mysqli opcache openssl pcntl pdo pdo_odbc pdo_mysql redis soap zip
 
-RUN docker-php-ext-install -j$(nproc) iconv \
+RUN docker-php-ext-install -j"$(nproc)" iconv \
     && docker-php-ext-configure gd --with-jpeg \
-    && docker-php-ext-install -j$(nproc) gd
+    && docker-php-ext-install -j"$(nproc)" gd
 
 # ORACLE oci
-RUN mkdir /opt/oracle \
-    && cd /opt/oracle
+RUN mkdir /opt/oracle
+
+WORKDIR /opt/oracle
 
 ADD docker-config/instantclient-basic-linux.x64-12.1.0.2.0.zip /opt/oracle
 ADD docker-config/instantclient-sdk-linux.x64-12.1.0.2.0.zip /opt/oracle
@@ -89,6 +47,7 @@ RUN echo 'export LD_LIBRARY_PATH="/opt/oracle/instantclient"' >> /root/.bashrc \
     && echo 'umask 002' >> /root/.bashrc
 
 # Install Oracle extensions
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN echo 'instantclient,/opt/oracle/instantclient/' | pecl install oci8-3.2.1 \
       && docker-php-ext-enable \
                oci8 \
