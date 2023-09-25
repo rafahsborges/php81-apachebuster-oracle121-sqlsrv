@@ -14,6 +14,8 @@ RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
     && apt-get install -y msodbcsql18 mssql-tools18 unixodbc-dev \
     && rm -rf /var/lib/apt/lists/*
 
+RUN pecl install sqlsrv pdo_sqlsrv
+
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN curl -sS https://getcomposer.org/installer \
   | php -- --install-dir=/usr/local/bin --filename=composer
@@ -23,7 +25,7 @@ COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr
 
 # Install required PHP extensions and all their prerequisites available via apt.
 RUN chmod uga+x /usr/bin/install-php-extensions && sync && install-php-extensions bcmath curl exif gd imagick intl \
-    ldap mbstring mysqli opcache openssl pcntl pdo pdo_odbc pdo_mysql pdo_sqlsrv redis soap sqlsrv zip
+    ldap mbstring mysqli opcache openssl pcntl pdo pdo_odbc pdo_mysql redis soap zip
 
 RUN docker-php-ext-install -j"$(nproc)" iconv \
     && docker-php-ext-configure gd --with-jpeg \
@@ -56,11 +58,10 @@ RUN echo 'export LD_LIBRARY_PATH="/opt/oracle/instantclient"' >> /root/.bashrc \
 # Install Oracle extensions
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN echo 'instantclient,/opt/oracle/instantclient/' | pecl install oci8-3.2.1 \
-      && docker-php-ext-enable \
-               oci8 \
-       && docker-php-ext-configure pdo_oci --with-pdo-oci=instantclient,/opt/oracle/instantclient,12.1 \
-       && docker-php-ext-install \
-               pdo_oci
+    && docker-php-ext-enable oci8 \
+    && docker-php-ext-configure pdo_oci --with-pdo-oci=instantclient,/opt/oracle/instantclient,12.1 \
+    && docker-php-ext-install pdo_oci \
+    && docker-php-ext-enable sqlsrv pdo_sqlsrv
 
 # Enable Apache Rewrite Module
 RUN a2enmod rewrite
