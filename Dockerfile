@@ -7,6 +7,13 @@ RUN apt-get update && apt-get install -y apt-transport-https build-essential cur
     traceroute unzip wget zip zlib1g-dev --no-install-recommends \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Install prerequisites for the sqlsrv and pdo_sqlsrv PHP extensions.
+RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
+    && curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list \
+    && apt-get update \
+    && apt-get install -y msodbcsql18 mssql-tools18 unixodbc-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN curl -sS https://getcomposer.org/installer \
   | php -- --install-dir=/usr/local/bin --filename=composer
@@ -16,7 +23,7 @@ COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr
 
 # Install required PHP extensions and all their prerequisites available via apt.
 RUN chmod uga+x /usr/bin/install-php-extensions && sync && install-php-extensions bcmath curl exif gd imagick intl \
-    ldap mbstring mysqli opcache openssl pcntl pdo pdo_odbc pdo_mysql redis soap zip
+    ldap mbstring mysqli opcache openssl pcntl pdo pdo_odbc pdo_mysql pdo_sqlsrv redis soap sqlsrv zip
 
 RUN docker-php-ext-install -j"$(nproc)" iconv \
     && docker-php-ext-configure gd --with-jpeg \
