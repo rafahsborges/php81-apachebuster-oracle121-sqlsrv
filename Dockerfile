@@ -4,8 +4,14 @@ ENV ACCEPT_EULA=Y
 
 RUN apt-get update && apt-get install -y apt-transport-https build-essential curl git gnupg2 iputils-ping libaio1 libcurl4-openssl-dev \
     libfreetype6-dev libjpeg62-turbo-dev libonig-dev libpng-dev libpq-dev libxml2-dev libzip-dev nano net-tools \
-    traceroute unzip wget zip zlib1g-dev --no-install-recommends \
+    traceroute unzip wget zip zlib1g-dev \
+    libz-dev libmemcached-dev \
+    memcached libmemcached-tools \
+    --no-install-recommends \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN pecl install memcached && \
+    docker-php-ext-enable memcached
 
 # Install prerequisites for the sqlsrv and pdo_sqlsrv PHP extensions.
 RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
